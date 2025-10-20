@@ -1,4 +1,4 @@
-This repository contains the following:
-- src: code used to perform analysis with cellmig and reproduce the main results and figures
-- data: datasets
-- output: main cellmig output files
+This repository contains the source code and data necessary to reproduce the results and 
+figures of the publication "Uncertainty-aware quantitative analysis of high-throughput 
+live cell migration data".
+
