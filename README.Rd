@@ -2,6 +2,7 @@ This repository contains the source code and data necessary to reproduce the res
 figures of the publication "Uncertainty-aware quantitative analysis of high-throughput 
 live cell migration data".
 
-If you want to reproduce our results, the first step is to run the script analysis.R. This
-will generate the cellmig output cellmig.RData, which is used as input for all subsequent
-analyses.
+How to reproduce our results?
+1. unzip data.zip
+2. run analysis.R: this step will generate an cellmig.RData object
+3. use cellmig.RData as input for all subsequent analyses
