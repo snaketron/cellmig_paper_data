@@ -6,3 +6,4 @@ How to reproduce our results?
 1. unzip data.zip
 2. run analysis.R: this step will generate an cellmig.RData object
 3. use cellmig.RData as input for all subsequent analyses
+4. post an issue in case you have a question
