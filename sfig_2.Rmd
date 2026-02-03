@@ -1,0 +1,94 @@
+---
+title: "Manuscript figures (dataset 1)"
+author: "SK"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
+library(ggplot2)
+library(ggforce)
+library(patchwork)
+library(reshape2)
+library(dplyr)
+library(DT)
+library(cellmig)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+```{r}
+d1 <- get(load("data/dataset_1.RData"))
+rm(d)
+```
+
+
+```{r}
+m <- aggregate(v~well+plate, data = d1, FUN = mean)
+colnames(m) <- c("well", "plate", "mu")
+v <- aggregate(v~well+plate, data = d1, FUN = var)
+colnames(v) <- c("well", "plate", "var")
+D <- merge(x = m, y = v, by = c("well", "plate"))
+D$kappa <- D$mu/D$var
+D$alpha <- D$mu*D$kappa
+D$sd <- sqrt(D$var)
+rm(m, v)
+```
+
+
+```{r}
+mean(log((D$mu^2)/D$var))
+```
+
+
+```{r}
+g1 <- ggplot(data = D)+
+    geom_point(aes(x = mu, y = var), size = 0.7, alpha = 0.5)+
+    xlab(label = "Mean")+
+    ylab(label = "Variance")+
+    theme_bw(base_size = 10)+
+    theme(legend.position = "top")+
+    scale_x_log10()+
+    scale_y_log10()+
+    annotation_logticks(base = 10, sides = "lb")
+
+g2 <- ggplot(data = D)+
+    geom_density(aes(mu^2/var), col = "red")+
+  geom_density(data = data.frame(y = exp(rnorm(n=10^5, mean = 1.5, sd = 1))), aes(y), alpha = 0.5)+
+    xlab(label = "Mean^2/Variance")+
+    ylab(label = "Count")+
+    theme_bw(base_size = 10)+
+    theme(legend.position = "top")+
+  scale_x_log10()+
+  annotation_logticks(base = 10, sides = "b")
+
+g3 <- ggplot()+
+    geom_density(data = D, aes(log(mu)), col = "steelblue", alpha = 0.5)+
+    geom_density(data = d1, aes(log(v)), col = "orange", alpha = 0.5)+
+    geom_density(data = data.frame(y = rnorm(n=10^5, mean = -0.5, sd = 1)), aes(y), alpha = 0.5)+
+    xlab(label = expression("log(v)"))+
+    ylab(label = "Density")+
+    theme_bw(base_size = 10)+
+    theme(legend.position = "none")
+```
+
+
+```{r}
+g <- (g1|g2|g3)+patchwork::plot_annotation(tag_levels = 'A')
+g
+```
+
+```{r}
+ggsave(file = "manuscript_dataset_1/Supplementary_priors.pdf", 
+       plot = g, device = "pdf", width = 7, height = 2.3)
+```
+
+
+

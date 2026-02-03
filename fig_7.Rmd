@@ -1,0 +1,176 @@
+---
+title: "Manuscript figures (dataset 2)"
+author: "SK"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
+library(ggplot2)
+library(ggforce)
+library(patchwork)
+library(reshape2)
+library(dplyr)
+library(DT)
+library(cellmig)
+dir.create("manuscript_dataset_2")
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+```{r}
+# constants
+ds <- c("0.5", "1", "2.5", "5", "10", "40", "DMSO")
+cs <- read.csv(file = "data/Pimozide/names.csv")$treatment_new
+
+# load data
+d <- get(load("data/dataset_2.RData"))
+d$dose <- factor(x = d$dose, levels = ds)
+d$treatment_new <- factor(x = d$treatment_new, levels = cs)
+```
+
+
+```{r, fig.width=16, fig.height=20}
+ggplot(data = d)+
+  facet_grid(compound~plate, scales = "free_x")+
+  geom_sina(aes(x = as.factor(dose), fill = as.factor(dose), y = v, group = well), 
+            shape = 21, col = "white", stroke = 0.1, size = 1)+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  theme(legend.position = "top",
+        strip.text.x = element_text(margin = margin(0.05,0,0.05,0, "cm")),
+        strip.text.y = element_text(margin = margin(0.05,0,0.05,0, "cm")))+
+  xlab(label = "dose")+
+  ylab(label = "migration speed (v)")+
+  scale_fill_discrete(name = "dose")+
+  guides(fill = guide_legend(nrow = 1, override.aes = list(size = 3)))
+```
+
+# `cellmig` results
+
+```{r}
+o <- get(load("results/cellmig_dataset_2.RData"))
+```
+
+
+# Figure 2
+
+```{r, fig.width=6.5, fig.height=3.5}
+q <- o$posteriors$delta_t
+q$dose <- factor(x = q$dose, levels = ds)
+q$compound <- factor(x = q$compound, levels = cs)
+q$hit <- T
+q$hit[which(!(q$X2.5.<=0&q$X97.5.>=0))] <- F
+g1 <- ggplot(data = q)+
+    facet_wrap(~compound, nrow = 3, scale = "free_x")+
+    geom_hline(yintercept = 1, linetype = "dashed")+
+    geom_point(aes(x = dose, y = exp(mean), col = hit))+
+    geom_errorbar(aes(x = dose, y = exp(mean), ymin = exp(X2.5.), 
+                      ymax = exp(X97.5.), col = hit), width = 0.13)+
+    theme_bw(base_size = 10)+
+    theme(legend.position = "top")+
+    theme(strip.text.x = element_text(margin = margin(0.035,0,0.035,0, "cm")))+
+    ylab(label = expression("Overall fold-change ("*delta^"\'"*")"))+
+    xlab(label = "Dose")+
+  scale_color_manual(name = expression("95% HDIs of "* delta^"\'" *"cross 0"), 
+                     values = c("TRUE"="black", "FALSE"="red"))
+
+g1
+```
+
+```{r}
+ggsave(filename = "manuscript_dataset_2/Figure_7.pdf",
+       plot = g1,
+       device = "pdf",
+       width = 6.2,
+       height = 7)
+```
+
+
+```{r}
+q <- o$posteriors$delta_t
+q$mean <- exp(q$mean)
+q$L95 <- exp(q$X2.5.)
+q$H95 <- exp(q$X97.5.)
+q <- q[,c("mean","L95", "H95", "compound", "dose")]
+q$dose_num <- as.numeric(as.character(q$dose))
+q <- q[order(q$dose_num, decreasing = F), ]
+q <- q[,c("mean","L95", "H95", "compound", "dose")]
+stargazer::stargazer(rownames = F, summary = F, q[q$compound == "Pimozide",])
+```
+
+
+```{r}
+q <- o$posteriors$delta_t
+q$mean <- exp(q$mean)
+q$L95 <- exp(q$X2.5.)
+q$H95 <- exp(q$X97.5.)
+q <- q[,c("mean","L95", "H95", "compound", "dose")]
+q$dose_num <- as.numeric(as.character(q$dose))
+q <- q[order(q$dose_num, decreasing = F), ]
+q <- q[,c("mean","L95", "H95", "compound", "dose")]
+stargazer::stargazer(rownames = F, summary = F, q)
+```
+
+
+
+
+
+```{r, fig.width=6.5, fig.height=7}
+d_t <- o$posteriors$delta_t
+d_t$dose <- factor(x = d_t$dose, levels = ds)
+d_t$compound <- factor(x = d_t$compound, levels = cs)
+d_t$hit <- T
+d_t$hit[which(!(d_t$X2.5.<=0&d_t$X97.5.>=0))] <- F
+
+d_tp <- o$posteriors$delta_tp
+d_tp$dose <- factor(x = d_tp$dose, levels = ds)
+d_tp$compound <- factor(x = d_tp$compound, levels = cs)
+
+g1 <- ggplot()+
+  facet_wrap(~compound, nrow = 3, scale = "free_x")+
+  geom_hline(yintercept = 1, linetype = "dashed")+
+  geom_errorbar(data = d_tp, aes(x = dose, y = exp(mean), ymin = exp(X2.5.), 
+                                 ymax = exp(X97.5.), group = plate), width = 0.15,
+                position = position_dodge(width = 0.75), alpha = 0.85, col = "darkgray")+
+  geom_point(data = d_tp, aes(x = dose, y = exp(mean), group = plate),
+             position = position_dodge(width = 0.75), size = 0.5, alpha = 0.85, shape = 21, fill = "darkgray", col = "darkgray")+
+  geom_errorbar(data = d_t, aes(x = dose, y = exp(mean), ymin = exp(X2.5.), 
+                                ymax = exp(X97.5.), col = hit), width = 0.2)+
+  geom_point(data = d_t, aes(x = dose, y = exp(mean), col = hit), size = 1)+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top")+
+  theme(strip.text.x = element_text(margin = margin(0.035,0,0.035,0, "cm")))+
+  ylab(label = expression("Overall ("*delta^"\'"*") and plate-specific ("*gamma^"\'"*") fold-change"))+
+  xlab(label = "Dose")+
+  scale_color_manual(name = expression("95% HDIs of "* delta^"\'" *"cross 0"), 
+                     values = c("TRUE"="black", "FALSE"="red"))+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 6))
+
+g1
+```
+
+
+
+
+```{r}
+ggsave(filename = "manuscript_dataset_2/Figure_7a.pdf",
+       plot = g1,
+       device = "pdf",
+       width = 6.5,
+       height = 7)
+```
+
+
+
+
+
+
+

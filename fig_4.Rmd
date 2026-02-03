@@ -1,0 +1,133 @@
+---
+title: "Figure 4"
+author: "SK"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
+library(ggplot2)
+library(ggforce)
+library(patchwork)
+library(reshape2)
+library(dplyr)
+library(DT)
+library(cellmig)
+dir.create("manuscript_dataset_1")
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+
+```{r}
+o <- get(load("results/cellmig_dataset_1.RData"))
+```
+
+```{r}
+u <- get_pairs(x = o, exponentiate = T)
+ds <- u$ds
+
+ds$dose <- factor(x = ds$dose, levels = c("2.5", "5", "10", "40", "control", "high"))
+ds$compound <- factor(x = ds$compound, levels = c("Fluvastatin", "CK666", 
+                                                  "CK869", "Benproperine", "Haloperidol", 
+                                                  "DMSO", "Pitavastatin", "Pravastatin"))
+
+srt <- c("Fluvastatin|2.5", "Fluvastatin|5", "Fluvastatin|10",
+         "CK666|5", "CK666|10", "CK666|40", 
+         "CK869|5", "CK869|10", 
+         "Benproperine|5", "Benproperine|10", 
+         "Haloperidol|5", "Haloperidol|10", 
+         "DMSO|high",
+         "Pitavastatin|2.5", "Pitavastatin|5", "Pitavastatin|10",
+         "Pravastatin|2.5", "Pravastatin|5", "Pravastatin|10")
+
+ds$group_x <- factor(x = ds$group_x, levels = srt)
+ds$group_y <- factor(x = ds$group_y, levels = srt)
+```
+
+```{r}
+ds$group_comparison <- paste0(ds$group_x, '-', ds$group_y)
+```
+
+
+
+```{r, fig.width=5, fig.height=5.5}
+g2a <- ggplot(data = ds)+
+  geom_tile(aes(y = group_x, x = group_y, fill = rho_M_exp), col = "white")+
+  geom_text(aes(y = group_x, x = group_y, label = round(x = rho_M_exp, digits = 1)), size = 2)+
+  scale_fill_distiller(name = expression(rho*"'"), breaks = scales::pretty_breaks(n = 4), palette = "Spectral")+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  xlab(label = 'to treatment')+
+  ylab(label = 'from treatment')+
+  guides(fill = guide_colourbar(barwidth = 5, barheight = 0.8))
+
+g2a
+```
+
+
+```{r, fig.width=5, fig.height=4.5}
+g2b <- ggplot(data = ds)+
+  geom_tile(aes(y = group_x, x = group_y, fill = pmax), col = "white")+
+  geom_text(aes(y = group_x, x = group_y, label = round(x = pmax, digits = 1)), size = 2)+
+  scale_fill_gradient(name = expression(pi), breaks = scales::pretty_breaks(n = 4), 
+                      low = "white", high = "darkgray")+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top",
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+
+  xlab(label = 'to treatment')+
+  ylab(label = 'from treatment')+
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())+
+  guides(fill = guide_colourbar(barwidth = 5, barheight = 0.8))
+
+g2b
+```
+
+```{r, fig.width=8, fig.height=5}
+g2 <- (g2a|g2b)+patchwork::plot_annotation(tag_levels = "A")
+g2
+```
+
+```{r}
+ggsave(filename = "manuscript_dataset_1/Figure_4.pdf",
+       plot = g2,
+       device = "pdf",
+       width = 8,
+       height = 4.75)
+```
+
+
+```{r}
+ds$from <- do.call(rbind, strsplit(x = as.character(ds$group_x), split = "\\|"))[,1]
+ds$to <- do.call(rbind, strsplit(x = as.character(ds$group_y), split = "\\|"))[,1]
+
+# 1
+q <- ds[ds$from == "Pitavastatin" & ds$to %in% c("Benproperine", "CK869", "Haloperidol"), ]
+min(q$rho_M_exp)
+max(q$rho_M_exp)
+min(q$pmax)
+
+# 2
+q <- ds[ds$from == "Pravastatin" & ds$to %in% c("Benproperine", "CK869", "Haloperidol"), ]
+min(q$rho_M_exp)
+max(q$rho_M_exp)
+min(q$pmax)
+
+# 3
+q <- ds[ds$from %in% c("Benproperine", "CK869", "Haloperidol") & 
+          ds$to %in% c("Benproperine", "CK869", "Haloperidol"), ]
+min(q$rho_M_exp)
+max(q$rho_M_exp)
+min(q$pmax)
+max(q$pmax)
+```
+

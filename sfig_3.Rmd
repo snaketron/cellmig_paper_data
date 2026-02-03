@@ -1,0 +1,77 @@
+---
+title: "Manuscript figures (dataset 1)"
+author: "SK"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
+library(ggplot2)
+library(ggforce)
+library(patchwork)
+library(reshape2)
+library(dplyr)
+library(DT)
+library(cellmig)
+library(rstan)
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+```{r}
+d1 <- get(load("data/dataset_1.RData"))
+rm(d)
+```
+
+
+```{r}
+sim <- cellmig::gen_full(control = list(N_biorep = 3, 
+                                        N_techrep = 3,
+                                        N_cell = 1000,
+                                        N_group = 5,
+                                        prior_alpha_p_M = -0.5,
+                                        prior_alpha_p_SD = 1,
+                                        prior_kappa_mu_M = 1.5,
+                                        prior_kappa_mu_SD = 1,
+                                        prior_kappa_sigma_M = 0,
+                                        prior_kappa_sigma_SD = 1,
+                                        prior_sigma_bio_M = 0,
+                                        prior_sigma_bio_SD = 1,
+                                        prior_sigma_tech_M = 0,
+                                        prior_sigma_tech_SD = 1,
+                                        prior_mu_group_M = 0,
+                                        prior_mu_group_SD = 1))
+```
+```{r}
+y <- sim$y$v
+```
+
+
+```{r}
+w <- sample(y, size = nrow(d1), replace = F)
+w <- round(w, digits = 3)
+
+g_D <- ggplot(data = data.frame(v_sim = w, v_obs = d1$v))+
+    geom_point((aes(x = v_obs, y = v_sim)), size = 0.5)+
+    geom_density_2d(aes(x = v_obs, y = v_sim), col = "orange")+
+    geom_hline(yintercept = c(min(d1$v), max(d1$v)), col = "darkgray")+
+    scale_x_log10(name = "Observed v")+
+    scale_y_log10(name = "Simulated v", limits = c(0.001, 10^4))+
+    annotation_logticks(base = 10, sides = "lb")+
+    theme_bw(base_size = 10)
+g_D
+```
+
+
+```{r}
+ggsave(file = "manuscript_dataset_1/Supplementary_prior_prediction.png", 
+       plot = g_D, device = "png", width = 3, height = 3, dpi = 600)
+```
+

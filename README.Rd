@@ -3,7 +3,6 @@ figures of the publication "Uncertainty-aware quantitative analysis of high-thro
 live cell migration data".
 
 How to reproduce our results?
-1. unzip data.zip
-2. run analysis.R: this step will generate an cellmig.RData object
-3. use cellmig.RData as input for all subsequent analyses
-4. post an issue in case you have a question
+1. run src/cellmig_analysis.R using as input .RData files in folder data
+2. generated individual figures by running .Rmd files
+3. post an issue in case you have a question
