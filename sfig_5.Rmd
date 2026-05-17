@@ -1,0 +1,58 @@
+---
+title: "Supplementary Figure 7"
+author: "SK"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(ggforce)
+library(patchwork)
+library(reshape2)
+library(dplyr)
+library(DT)
+library(cellmig)
+library(dunn.test)
+library(ggrepel)
+library(rstan)
+dir.create("manuscript_dataset_1")
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+
+# Load cellmig results of Dataset 1 and Dataset 2
+
+```{r}
+o1 <- get(load("results/cellmig_dataset_1.RData"))
+o2 <- get(load("results/cellmig_dataset_2.RData"))
+```
+
+
+```{r}
+p1 <- get_pairs(x = o1, exponentiate = TRUE)
+p2 <- get_pairs(x = o2, exponentiate = TRUE)
+```
+
+```{r, fig.width=6, fig.height=3}
+sfig_violin <- ((p1$plot_volcano+ggtitle(label = "Dataset 1"))|
+                  (p2$plot_volcano+ggtitle(label = "Dataset 2")))+
+  patchwork::plot_annotation(tag_levels = 'A')
+```
+
+
+```{r}
+ggsave(filename = "manuscript_rebuttal/Supplementary_violin.pdf",
+       plot = sfig_violin,
+       device = "pdf",
+       width = 6.5,
+       height = 3)
+```
+

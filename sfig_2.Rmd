@@ -1,5 +1,5 @@
 ---
-title: "Manuscript figures (dataset 1)"
+title: "SFig 2"
 author: "SK"
 date: "`r Sys.Date()`"
 output:
@@ -11,7 +11,6 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
 library(ggplot2)
 library(ggforce)
 library(patchwork)
@@ -19,18 +18,18 @@ library(reshape2)
 library(dplyr)
 library(DT)
 library(cellmig)
+library(openxlsx)
 
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 
+# Load Dataset 1
+
 ```{r}
 d1 <- get(load("data/dataset_1.RData"))
 rm(d)
-```
 
-
-```{r}
 m <- aggregate(v~well+plate, data = d1, FUN = mean)
 colnames(m) <- c("well", "plate", "mu")
 v <- aggregate(v~well+plate, data = d1, FUN = var)
@@ -39,56 +38,137 @@ D <- merge(x = m, y = v, by = c("well", "plate"))
 D$kappa <- D$mu/D$var
 D$alpha <- D$mu*D$kappa
 D$sd <- sqrt(D$var)
-rm(m, v)
+D$cv <- (D$mu^2)/D$var
+D1 <- D
+rm(m, v, D)
+```
+
+# Load Dataset 2
+
+```{r}
+d2 <- get(load("data/dataset_2.RData"))
+rm(d)
+
+m <- aggregate(v~well+plate, data = d2, FUN = mean)
+colnames(m) <- c("well", "plate", "mu")
+v <- aggregate(v~well+plate, data = d2, FUN = var)
+colnames(v) <- c("well", "plate", "var")
+D <- merge(x = m, y = v, by = c("well", "plate"))
+D$kappa <- D$mu/D$var
+D$alpha <- D$mu*D$kappa
+D$sd <- sqrt(D$var)
+D$cv <- (D$mu^2)/D$var
+D2 <- D
+rm(m, v, D)
+```
+
+# Load control-treated neutrophils from ComplexEye (Cibir et al., 2022)
+
+```{r}
+j <- read.xlsx("rebuttal/Justin_ComplexEye.xlsx")
+j$m <- j[,"speed_mean.[µm/min]"]
+j$v <- j[,"speed_std.[µm/min]"]^2
+j$cv <- (j$m^2)/j$v
+# j <- j[j$m <= 8,]
+j <- j[(j$round_CE == 1 & j$well %in% c("A1", "A2"))|
+         (j$round_CE == 2 & j$well %in% c("C2", "C3"))|
+         (j$round_CE == 3 & j$well %in% c("B5", "B6"))|
+         (j$round_CE == 4 & j$well %in% c("F1", "F2"))|
+         (j$round_CE == 5 & j$well %in% c("H6", "H7"))|
+         (j$round_CE == 6 & j$well %in% c("A6", "A7"))|
+         (j$round_CE == 7 & j$well %in% c("D1", "D2"))|
+         (j$round_CE == 8 & j$well %in% c("D6", "D7"))|
+         (j$round_CE == 9 & j$well %in% c("A1"))|
+         (j$round_CE == 10 & j$well %in% c("F1"))|
+         (j$round_CE == 11 & j$well %in% c("A1"))|
+         (j$round_CE == 12 & j$well %in% c("H6"))|
+         (j$round_CE == 13 & j$well %in% c("F8"))|
+         (j$round_CE == 14 & j$well %in% c("D6"))|
+         (j$round_CE == 15 & j$well %in% c("A1"))|
+         (j$round_CE == 16 & j$well %in% c("D6"))|
+         (j$round_CE == 17 & j$well %in% c("A1")), ]
 ```
 
 
+# Make panels in A
+
 ```{r}
-mean(log((D$mu^2)/D$var))
+g1a <- ggplot(data = D1)+
+  geom_point(aes(x = mu, y = var), size = 0.7, alpha = 0.5)+
+  xlab(label = "Mean")+
+  ylab(label = "Variance")+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top")+
+  scale_x_log10()+
+  scale_y_log10()+
+  annotation_logticks(base = 10, sides = "lb")+
+  ggtitle(label = "Dataset 1")
+
+g1b <- ggplot(data = D2)+
+  geom_point(aes(x = mu, y = var), size = 0.7, alpha = 0.5)+
+  xlab(label = "Mean")+
+  ylab(label = "Variance")+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top")+
+  scale_x_log10()+
+  scale_y_log10()+
+  annotation_logticks(base = 10, sides = "lb")+
+  ggtitle(label = "Dataset 2")
 ```
 
 
-```{r}
-g1 <- ggplot(data = D)+
-    geom_point(aes(x = mu, y = var), size = 0.7, alpha = 0.5)+
-    xlab(label = "Mean")+
-    ylab(label = "Variance")+
-    theme_bw(base_size = 10)+
-    theme(legend.position = "top")+
-    scale_x_log10()+
-    scale_y_log10()+
-    annotation_logticks(base = 10, sides = "lb")
+# Panel B
 
-g2 <- ggplot(data = D)+
-    geom_density(aes(mu^2/var), col = "red")+
+```{r}
+g2 <- ggplot()+
+  geom_density(data = D1, aes(mu^2/var), col = "red")+
+  geom_density(data = D2, aes(mu^2/var), col = "red", linetype = "dashed")+
   geom_density(data = data.frame(y = exp(rnorm(n=10^5, mean = 1.5, sd = 1))), aes(y), alpha = 0.5)+
-    xlab(label = "Mean^2/Variance")+
-    ylab(label = "Count")+
-    theme_bw(base_size = 10)+
-    theme(legend.position = "top")+
+  geom_point(data = j, aes(x = cv, y = 0), 
+             position = position_jitter(height = 0.013, width = 0), 
+             color = "purple", alpha = 0.7, size = 1)+
+  xlab(label = "Mean^2/Variance")+
+  ylab(label = "Count")+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top")+
   scale_x_log10()+
   annotation_logticks(base = 10, sides = "b")
-
-g3 <- ggplot()+
-    geom_density(data = D, aes(log(mu)), col = "steelblue", alpha = 0.5)+
-    geom_density(data = d1, aes(log(v)), col = "orange", alpha = 0.5)+
-    geom_density(data = data.frame(y = rnorm(n=10^5, mean = -0.5, sd = 1)), aes(y), alpha = 0.5)+
-    xlab(label = expression("log(v)"))+
-    ylab(label = "Density")+
-    theme_bw(base_size = 10)+
-    theme(legend.position = "none")
 ```
 
 
+# Panel C
+
 ```{r}
-g <- (g1|g2|g3)+patchwork::plot_annotation(tag_levels = 'A')
+n <- read.csv("rebuttal/41467_2023_43765_MOESM4_ESM.csv", sep = ";")
+n$v <- n$Mean.speed..µm.min.
+# Select controls
+n <- n[n$Well %in% c("DMSO ctr", "PBS ctr"),]
+
+g3 <- ggplot()+
+  geom_density(data = D1, aes(log(mu)), col = "steelblue", alpha = 0.5)+
+  geom_density(data = d1, aes(log(v)), col = "orange", alpha = 0.5)+
+  geom_density(data = D2, aes(log(mu)), col = "steelblue", alpha = 0.5, linetype = "dashed")+
+  geom_density(data = d2, aes(log(v)), col = "orange", alpha = 0.5, linetype = "dashed")+
+  geom_point(data = n, aes(x = log(v), y = 0), 
+             position = position_jitter(height = 0.013, width = 0), 
+             color = "purple", alpha = 1, size = .8)+
+  geom_density(data = data.frame(y = rnorm(n=10^5, mean = -0.5, sd = 1)), aes(y), alpha = 0.5)+
+  xlab(label = expression("log(v)"))+
+  ylab(label = "Density")+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "none")
+```
+
+
+
+```{r, fig.height=8, fig.width=5}
+g <- ((g1a|g1b)/g2/g3)+patchwork::plot_annotation(tag_levels = 'A')
 g
 ```
 
 ```{r}
 ggsave(file = "manuscript_dataset_1/Supplementary_priors.pdf", 
-       plot = g, device = "pdf", width = 7, height = 2.3)
+       plot = g, device = "pdf", width = 5, height = 6.5)
 ```
-
 
 

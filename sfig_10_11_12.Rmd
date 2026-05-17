@@ -1,0 +1,184 @@
+---
+title: "Supplementary Figures"
+author: "SK"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(ggforce)
+library(patchwork)
+library(reshape2)
+library(dplyr)
+library(DT)
+library(cellmig)
+dir.create("manuscript_dataset_1")
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+# Load cellmig results for Dataset 1
+
+```{r}
+o <- get(load("results/cellmig_dataset_1.RData"))
+```
+
+# Posterior predictive check (PPC)
+
+## Violins
+
+```{r, fig.width=6.5, fig.height=8}
+g <- cellmig::get_ppc_violins(x = o, wrap = T, ncol = 5)
+g
+```
+
+
+```{r}
+ggsave(filename = "manuscript_dataset_1/Supplementary_ppc.pdf",
+       plot = g,
+       device = "pdf",
+       width = 8,
+       height = 9)
+```
+
+
+## Comparison of predicted (y-axis) vs. observed (x-axis) mean speed in wells (dots)
+
+```{r, fig.width=5, fig.height=4}
+ppc <- get_ppc_means(x = o)
+ppc
+
+y <- aggregate(v~well_id, data = o$data$proc_x, FUN = mean)
+q <- o$posteriors$well_mu
+y <- merge(x = y, y = q, by = "well_id")
+
+g <- ggplot(data = y)+
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed")+
+  geom_errorbar(aes(x = v, y = mean, ymin = X2.5., ymax = X97.5.), col = "darkgray")+
+  geom_point(aes(x = v, y = mean), shape = 21, fill = "white", size = 1, stroke = 0.3, alpha = 0.85)+
+  theme_bw(base_size = 10)+
+  xlab(label = "Observed mean well velocity")+
+  ylab(label = "Predicted mean well velocity + 95% HDI")+
+  scale_x_log10()+
+  scale_y_log10()+
+  annotation_logticks(base = 10, sides = "lb")
+g
+
+ggsave(filename = "manuscript_dataset_1/Supplementary_ppc_wells.pdf",
+       plot = g,
+       device = "pdf",
+       width = 3,
+       height = 3)
+```
+
+# All parameters
+
+```{r, fig.width=4, fig.height=2}
+u <- o$posteriors$alpha_p
+
+u$plate_group <- "p={4,5,6,7,8}"
+u$plate_group[u$plate == "p_1"] <- "p={1,2,3}"
+u$plate_group[u$plate == "p_2"] <- "p={1,2,3}"
+u$plate_group[u$plate == "p_3"] <- "p={1,2,3}"
+
+u$plate <- factor(x = u$plate, levels = unique(u$plate))
+
+g_alpha_p <- ggplot(data = u)+
+  geom_point(aes(x = mean, y = as.numeric(plate), col = plate_group))+
+  geom_errorbarh(aes(x = mean, xmin = X2.5., xmax = X97.5., 
+                     y = as.numeric(plate), col = plate_group), height = 0.1)+
+  scale_color_manual(name = "Plate group", values = c("steelblue", "orange"))+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top")+
+  ylab(label = "Plate")+
+  xlab(label = expression(alpha[p]))+
+  scale_y_continuous(breaks = 1:8, labels = 1:8)
+
+g_alpha_p_exp <- ggplot(data = u)+
+  geom_point(aes(x = exp(mean), y = as.numeric(plate), col = plate_group))+
+  geom_errorbarh(aes(x = exp(mean), xmin = exp(X2.5.), xmax = exp(X97.5.), 
+                     y = as.numeric(plate), col = plate_group), height = 0.1)+
+  scale_color_manual(name = "Plate group", values = c("steelblue", "orange"))+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top")+
+  ylab(label = "Plate")+
+  xlab(label = expression(alpha[p]))+
+  scale_y_continuous(breaks = 1:8, labels = 1:8)
+
+g_alpha <- g_alpha_p|g_alpha_p_exp
+```
+
+
+```{r, fig.width=4, fig.height=2}
+g_kappa_mu <- ggplot()+
+  geom_point(data = o$posteriors$kappa_mu, aes(y = "", x = mean))+
+  geom_errorbarh(data = o$posteriors$kappa_mu, 
+                 aes(x = mean, xmin = X2.5., xmax = X97.5., 
+                     y = ""), height = 0.1)+
+  theme_bw(base_size = 10)+
+  xlab(label = 'parameter value (mean + 95% HDI)')+
+  ylab(label = expression(kappa[mu]))
+
+g_kappa_sigma <- ggplot()+
+  geom_point(data = o$posteriors$kappa_sigma, aes(y = "", x = mean))+
+  geom_errorbarh(data = o$posteriors$kappa_sigma, 
+                 aes(x = mean, xmin = X2.5., xmax = X97.5., 
+                     y = ""), height = 0.1)+
+  theme_bw(base_size = 10)+
+  xlab(label = 'parameter value (mean + 95% HDI)')+
+  ylab(label = expression(kappa[sigma]))
+```
+
+
+
+```{r, fig.width=4, fig.height=2}
+g_sigma_bio <- ggplot()+
+  geom_point(data = o$posteriors$sigma_bio, aes(y = "", x = mean))+
+  geom_errorbarh(data = o$posteriors$sigma_bio,
+                 aes(x = mean, xmin = X2.5., xmax = X97.5., 
+                     y = ""), height = 0.1)+
+  theme_bw(base_size = 10)+
+  xlab(label = 'parameter value (mean + 95% HDI)')+
+  ylab(label = expression(sigma[bio]))
+
+g_sigma_tech <- ggplot()+
+  geom_point(data = o$posteriors$sigma_tech, aes(y = "", x = mean))+
+  geom_errorbarh(data = o$posteriors$sigma_tech,
+                 aes(x = mean, xmin = X2.5., xmax = X97.5., 
+                     y = ""), height = 0.1)+
+  theme_bw(base_size = 10)+
+  xlab(label = 'parameter value (mean + 95% HDI)')+
+  ylab(label = expression(sigma[tech]))
+
+g_sigma_delta <- ggplot()+
+  geom_point(data = o$posteriors$sigma_delta, aes(y = "", x = mean))+
+  geom_errorbarh(data = o$posteriors$sigma_delta,
+                 aes(x = mean, xmin = X2.5., xmax = X97.5., 
+                     y = ""), height = 0.1)+
+  theme_bw(base_size = 10)+
+  xlab(label = 'parameter value (mean + 95% HDI)')+
+  ylab(label = expression(sigma[delta]))
+```
+
+
+```{r}
+g <- g_alpha|(g_sigma_bio/g_sigma_tech/g_sigma_delta/g_kappa_mu/g_kappa_sigma)
+g
+```
+
+
+```{r}
+ggsave(filename = "manuscript_dataset_1/Supplementary_parameters.pdf",
+       plot = g,
+       device = "pdf",
+       width = 7.5,
+       height = 4.3)
+```
+

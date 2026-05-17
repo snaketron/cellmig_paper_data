@@ -1,5 +1,5 @@
 ---
-title: "Manuscript figures (dataset 1)"
+title: "SFig 3"
 author: "SK"
 date: "`r Sys.Date()`"
 output:
@@ -11,7 +11,6 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
 library(ggplot2)
 library(ggforce)
 library(patchwork)
@@ -25,17 +24,22 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
 
+
+# Load Dataset 1
+
 ```{r}
 d1 <- get(load("data/dataset_1.RData"))
 rm(d)
 ```
 
 
+# Simulate with gen_full (default priors)
+
 ```{r}
-sim <- cellmig::gen_full(control = list(N_biorep = 3, 
-                                        N_techrep = 3,
-                                        N_cell = 1000,
-                                        N_group = 5,
+sim_default <- gen_full(control = list(N_biorep = 10, 
+                                        N_techrep = 10,
+                                        N_cell = 100,
+                                        N_group = 100,
                                         prior_alpha_p_M = -0.5,
                                         prior_alpha_p_SD = 1,
                                         prior_kappa_mu_M = 1.5,
@@ -46,32 +50,177 @@ sim <- cellmig::gen_full(control = list(N_biorep = 3,
                                         prior_sigma_bio_SD = 1,
                                         prior_sigma_tech_M = 0,
                                         prior_sigma_tech_SD = 1,
-                                        prior_mu_group_M = 0,
-                                        prior_mu_group_SD = 1))
-```
-```{r}
-y <- sim$y$v
+                                        prior_sigma_delta_M = 0,
+                                        prior_sigma_delta_SD = 1))$y$v
 ```
 
 
-```{r}
-w <- sample(y, size = nrow(d1), replace = F)
-w <- round(w, digits = 3)
+# Simulate with gen_full (sigma_bio SD=3)
 
+```{r}
+sim_tech_1_bio_3_delta_1 <- gen_full(control = list(N_biorep = 10, 
+                                                    N_techrep = 10,
+                                                    N_cell = 100,
+                                                    N_group = 100,
+                                                    prior_alpha_p_M = -0.5,
+                                                    prior_alpha_p_SD = 1,
+                                                    prior_kappa_mu_M = 1.5,
+                                                    prior_kappa_mu_SD = 1,
+                                                    prior_kappa_sigma_M = 0,
+                                                    prior_kappa_sigma_SD = 1,
+                                                    prior_sigma_bio_M = 0,
+                                                    prior_sigma_bio_SD = 3,
+                                                    prior_sigma_tech_M = 0,
+                                                    prior_sigma_tech_SD = 1,
+                                                    prior_sigma_delta_M = 0,
+                                                    prior_sigma_delta_SD = 1))$y$v
+```
+
+
+# Simulate with gen_full (sigma_tech SD=3)
+
+```{r}
+sim_tech_3_bio_1_delta_1 <- gen_full(control = list(N_biorep = 10, 
+                                                    N_techrep = 10,
+                                                    N_cell = 100,
+                                                    N_group = 100,
+                                                    prior_alpha_p_M = -0.5,
+                                                    prior_alpha_p_SD = 1,
+                                                    prior_kappa_mu_M = 1.5,
+                                                    prior_kappa_mu_SD = 1,
+                                                    prior_kappa_sigma_M = 0,
+                                                    prior_kappa_sigma_SD = 1,
+                                                    prior_sigma_bio_M = 0,
+                                                    prior_sigma_bio_SD = 1,
+                                                    prior_sigma_tech_M = 0,
+                                                    prior_sigma_tech_SD = 3,
+                                                    prior_sigma_delta_M = 0,
+                                                    prior_sigma_delta_SD = 1))$y$v
+```
+
+# Simulate with gen_full (sigma_delta SD=3)
+
+```{r}
+sim_tech_1_bio_1_delta_3 <- gen_full(control = list(N_biorep = 10, 
+                                                    N_techrep = 10,
+                                                    N_cell = 100,
+                                                    N_group = 100,
+                                                    prior_alpha_p_M = -0.5,
+                                                    prior_alpha_p_SD = 1,
+                                                    prior_kappa_mu_M = 1.5,
+                                                    prior_kappa_mu_SD = 1,
+                                                    prior_kappa_sigma_M = 0,
+                                                    prior_kappa_sigma_SD = 1,
+                                                    prior_sigma_bio_M = 0,
+                                                    prior_sigma_bio_SD = 1,
+                                                    prior_sigma_tech_M = 0,
+                                                    prior_sigma_tech_SD = 1,
+                                                    prior_sigma_delta_M = 0,
+                                                    prior_sigma_delta_SD = 3))$y$v
+```
+
+
+# Simulate with gen_full (sigma_bio SD=3, sigma_tech SD=3, sigma_delta SD=3)
+
+```{r}
+sim_tech_3_bio_3_delta_3 <- gen_full(control = list(N_biorep = 10, 
+                                                    N_techrep = 10,
+                                                    N_cell = 100,
+                                                    N_group = 100,
+                                                    prior_alpha_p_M = -0.5,
+                                                    prior_alpha_p_SD = 1,
+                                                    prior_kappa_mu_M = 1.5,
+                                                    prior_kappa_mu_SD = 1,
+                                                    prior_kappa_sigma_M = 0,
+                                                    prior_kappa_sigma_SD = 1,
+                                                    prior_sigma_bio_M = 0,
+                                                    prior_sigma_bio_SD = 3,
+                                                    prior_sigma_tech_M = 0,
+                                                    prior_sigma_tech_SD = 3,
+                                                    prior_sigma_delta_M = 0,
+                                                    prior_sigma_delta_SD = 3))$y$v
+```
+
+
+# Create figures
+
+```{r}
+w <- sample(sim_default, size = nrow(d1), replace = F)
+g <- ggplot(data = data.frame(v_sim = w, v_obs = d1$v))+
+  geom_point((aes(x = v_obs, y = v_sim)), size = 0.5)+
+  geom_density_2d(aes(x = v_obs, y = v_sim), col = "orange")+
+  geom_hline(yintercept = c(min(d1$v), max(d1$v)), col = "darkgray")+
+  geom_text(data = data.frame(l = round(sum(w>100)/length(w)*100, digits = 1), 
+                              x = 0.04, y = 9000),
+            aes(x=x,y=y,label=l), col = "red", size = 3)+
+  scale_x_log10(name = "Observed v")+
+  scale_y_log10(name = "Simulated v", limits = c(0.001, 10^4))+
+  annotation_logticks(base = 10, sides = "lb")+
+  theme_bw(base_size = 10)
+
+w <- sample(sim_tech_3_bio_1_delta_1, size = nrow(d1), replace = F)
+g_A <- ggplot(data = data.frame(v_sim = w, v_obs = d1$v))+
+  geom_point((aes(x = v_obs, y = v_sim)), size = 0.5)+
+  geom_density_2d(aes(x = v_obs, y = v_sim), col = "orange")+
+  geom_hline(yintercept = c(min(d1$v), max(d1$v)), col = "darkgray")+
+  geom_text(data = data.frame(l = round(sum(w>100)/length(w)*100, digits = 1), 
+                              x = 0.06, y = 9000),
+            aes(x=x,y=y,label=l), col = "red", size = 3)+
+  scale_x_log10(name = "Observed v")+
+  scale_y_log10(name = "Simulated v", limits = c(0.001, 10^4))+
+  annotation_logticks(base = 10, sides = "lb")+
+  theme_bw(base_size = 10)
+
+w <- sample(sim_tech_1_bio_3_delta_1, size = nrow(d1), replace = F)
+g_B <- ggplot(data = data.frame(v_sim = w, v_obs = d1$v))+
+  geom_point((aes(x = v_obs, y = v_sim)), size = 0.5)+
+  geom_density_2d(aes(x = v_obs, y = v_sim), col = "orange")+
+  geom_hline(yintercept = c(min(d1$v), max(d1$v)), col = "darkgray")+
+  geom_text(data = data.frame(l = round(sum(w>100)/length(w)*100, digits = 1), 
+                              x = 0.06, y = 9000),
+            aes(x=x,y=y,label=l), col = "red", size = 3)+
+  scale_x_log10(name = "Observed v")+
+  scale_y_log10(name = "Simulated v", limits = c(0.001, 10^4))+
+  annotation_logticks(base = 10, sides = "lb")+
+  theme_bw(base_size = 10)
+
+w <- sample(sim_tech_1_bio_1_delta_3, size = nrow(d1), replace = F)
+g_C <- ggplot(data = data.frame(v_sim = w, v_obs = d1$v))+
+  geom_point((aes(x = v_obs, y = v_sim)), size = 0.5)+
+  geom_density_2d(aes(x = v_obs, y = v_sim), col = "orange")+
+  geom_hline(yintercept = c(min(d1$v), max(d1$v)), col = "darkgray")+
+  geom_text(data = data.frame(l = round(sum(w>100)/length(w)*100, digits = 1), 
+                              x = 0.06, y = 9000),
+            aes(x=x,y=y,label=l), col = "red", size = 3)+
+  scale_x_log10(name = "Observed v")+
+  scale_y_log10(name = "Simulated v", limits = c(0.001, 10^4))+
+  annotation_logticks(base = 10, sides = "lb")+
+  theme_bw(base_size = 10)
+
+w <- sample(sim_tech_3_bio_3_delta_3, size = nrow(d1), replace = F)
 g_D <- ggplot(data = data.frame(v_sim = w, v_obs = d1$v))+
-    geom_point((aes(x = v_obs, y = v_sim)), size = 0.5)+
-    geom_density_2d(aes(x = v_obs, y = v_sim), col = "orange")+
-    geom_hline(yintercept = c(min(d1$v), max(d1$v)), col = "darkgray")+
-    scale_x_log10(name = "Observed v")+
-    scale_y_log10(name = "Simulated v", limits = c(0.001, 10^4))+
-    annotation_logticks(base = 10, sides = "lb")+
-    theme_bw(base_size = 10)
-g_D
+  geom_point((aes(x = v_obs, y = v_sim)), size = 0.5)+
+  geom_density_2d(aes(x = v_obs, y = v_sim), col = "orange")+
+  geom_hline(yintercept = c(min(d1$v), max(d1$v)), col = "darkgray")+
+  geom_text(data = data.frame(l = round(sum(w>100)/length(w)*100, digits = 1), 
+                              x = 0.06, y = 9000),
+            aes(x=x,y=y,label=l), col = "red", size = 3)+
+  scale_x_log10(name = "Observed v")+
+  scale_y_log10(name = "Simulated v", limits = c(0.001, 10^4))+
+  annotation_logticks(base = 10, sides = "lb")+
+  theme_bw(base_size = 10)
+```
+
+```{r, fig.width=6, fig.height=8}
+sfig <- (g/(g_A|g_B)/(g_C|g_D))+
+  patchwork::plot_layout(heights = c(2, 1,1))+
+  patchwork::plot_annotation(tag_levels = "A")
+sfig
 ```
 
 
 ```{r}
 ggsave(file = "manuscript_dataset_1/Supplementary_prior_prediction.png", 
-       plot = g_D, device = "png", width = 3, height = 3, dpi = 600)
+       plot = sfig, device = "png", width = 5, height = 7, dpi = 600)
 ```
 

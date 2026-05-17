@@ -11,7 +11,6 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
 library(ggplot2)
 library(ggforce)
 library(patchwork)
@@ -39,6 +38,7 @@ ds$compound <- factor(x = ds$compound, levels = c("Fluvastatin", "CK666",
                                                   "CK869", "Benproperine", "Haloperidol", 
                                                   "DMSO", "Pitavastatin", "Pravastatin"))
 
+# factors for x/y-axis
 srt <- c("Fluvastatin|2.5", "Fluvastatin|5", "Fluvastatin|10",
          "CK666|5", "CK666|10", "CK666|40", 
          "CK869|5", "CK869|10", 
@@ -50,16 +50,14 @@ srt <- c("Fluvastatin|2.5", "Fluvastatin|5", "Fluvastatin|10",
 
 ds$group_x <- factor(x = ds$group_x, levels = srt)
 ds$group_y <- factor(x = ds$group_y, levels = srt)
-```
 
-```{r}
 ds$group_comparison <- paste0(ds$group_x, '-', ds$group_y)
 ```
 
 
 
 ```{r, fig.width=5, fig.height=5.5}
-g2a <- ggplot(data = ds)+
+g_rho <- ggplot(data = ds)+
   geom_tile(aes(y = group_x, x = group_y, fill = rho_M_exp), col = "white")+
   geom_text(aes(y = group_x, x = group_y, label = round(x = rho_M_exp, digits = 1)), size = 2)+
   scale_fill_distiller(name = expression(rho*"'"), breaks = scales::pretty_breaks(n = 4), palette = "Spectral")+
@@ -70,12 +68,12 @@ g2a <- ggplot(data = ds)+
   ylab(label = 'from treatment')+
   guides(fill = guide_colourbar(barwidth = 5, barheight = 0.8))
 
-g2a
+g_rho
 ```
 
 
 ```{r, fig.width=5, fig.height=4.5}
-g2b <- ggplot(data = ds)+
+g_pi <- ggplot(data = ds)+
   geom_tile(aes(y = group_x, x = group_y, fill = pmax), col = "white")+
   geom_text(aes(y = group_x, x = group_y, label = round(x = pmax, digits = 1)), size = 2)+
   scale_fill_gradient(name = expression(pi), breaks = scales::pretty_breaks(n = 4), 
@@ -89,45 +87,19 @@ g2b <- ggplot(data = ds)+
         panel.grid.minor = element_blank())+
   guides(fill = guide_colourbar(barwidth = 5, barheight = 0.8))
 
-g2b
+g_pi
 ```
 
 ```{r, fig.width=8, fig.height=5}
-g2 <- (g2a|g2b)+patchwork::plot_annotation(tag_levels = "A")
-g2
+g <- (g_rho|g_pi)+patchwork::plot_annotation(tag_levels = "A")
+g
 ```
 
 ```{r}
 ggsave(filename = "manuscript_dataset_1/Figure_4.pdf",
-       plot = g2,
+       plot = g,
        device = "pdf",
        width = 8,
        height = 4.75)
-```
-
-
-```{r}
-ds$from <- do.call(rbind, strsplit(x = as.character(ds$group_x), split = "\\|"))[,1]
-ds$to <- do.call(rbind, strsplit(x = as.character(ds$group_y), split = "\\|"))[,1]
-
-# 1
-q <- ds[ds$from == "Pitavastatin" & ds$to %in% c("Benproperine", "CK869", "Haloperidol"), ]
-min(q$rho_M_exp)
-max(q$rho_M_exp)
-min(q$pmax)
-
-# 2
-q <- ds[ds$from == "Pravastatin" & ds$to %in% c("Benproperine", "CK869", "Haloperidol"), ]
-min(q$rho_M_exp)
-max(q$rho_M_exp)
-min(q$pmax)
-
-# 3
-q <- ds[ds$from %in% c("Benproperine", "CK869", "Haloperidol") & 
-          ds$to %in% c("Benproperine", "CK869", "Haloperidol"), ]
-min(q$rho_M_exp)
-max(q$rho_M_exp)
-min(q$pmax)
-max(q$pmax)
 ```
 

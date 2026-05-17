@@ -11,7 +11,6 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
 library(ggplot2)
 library(ggforce)
 library(patchwork)
@@ -31,7 +30,8 @@ o <- get(load("results/cellmig_dataset_1.RData"))
 
 ```{r}
 o$posteriors$delta_tp$dose <- factor(x = o$posteriors$delta_tp$dose, 
-                                     levels = c("2.5", "5", "10", "40", "DMSO", "high"))
+                                     levels = c("2.5", "5", "10", 
+                                                "40", "DMSO", "high"))
 ```
 
 ```{r, fig.width=6.5, fig.height=2}
@@ -109,6 +109,7 @@ g3
 
 
 ```{r, fig.width=7, fig.height=5}
+d <- get(load("data/dataset_1.RData"))
 u <- aggregate(v~plate+dose+compound+experiment, data = d, FUN = mean)
 u$dose <- factor(x = u$dose, levels = c("2.5", "5", "10", "40", "DMSO", "high"))
 

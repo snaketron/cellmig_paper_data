@@ -1,0 +1,185 @@
+---
+title: "Figure 5AB"
+author: "SK"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(ggforce)
+library(patchwork)
+library(reshape2)
+library(dplyr)
+library(DT)
+library(cellmig)
+library(dunn.test)
+library(ggrepel)
+dir.create("manuscript_dataset_1")
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+
+```{r}
+o <- get(load("results/cellmig_dataset_1.RData"))
+```
+
+
+# Kruskal-Wallis test + Dunn correction
+
+```{r}
+o$posteriors$delta_tp$plate_group <- "p={4,5,6,7,8}"
+o$posteriors$delta_tp$plate_group[o$posteriors$delta_tp$plate %in% c("p_1", "p_2", "p_3")] <- "p={1,2,3}"
+
+o$posteriors$delta_t$plate_group <- "p={4,5,6,7,8}"
+o$posteriors$delta_t$plate_group[o$posteriors$delta_t$plate %in% c("p_1", "p_2", "p_3")] <- "p={1,2,3}"
+o$posteriors$delta_t$plate_group_exp <- "B"
+o$posteriors$delta_t$plate_group_exp[o$posteriors$delta_t$plate %in% c("p_1", "p_2", "p_3")] <- "A"
+```
+
+
+```{r}
+d <- o$data$proc_x
+d$dose <- factor(x = d$dose, levels = c("2.5", "5", "10", "40", "DMSO", "high"))
+d$experiment <- "B"
+d$experiment[d$plate %in% c("p_1", "p_2", "p_3")] <- "A"
+```
+
+
+# Pool everything
+
+```{r}
+q <- d
+q <- q[q$dose != "DMSO",]
+q$group <- paste0(q$compound, "|", q$dose)
+
+gs_arp <- unique(q$group[q$experiment=="A"])
+gs_statin <- unique(q$group[q$experiment=="B"])
+
+dt <- dunn.test(q$v, q$group, method = "bh")
+  
+dt <- data.frame(p = dt$P, p_adj = dt$P.adjusted, z = dt$Z, contrast = dt$comparisons)
+dt$contrast <- gsub(pattern = " ", replacement = '', x = dt$contrast)
+dt$group_x <- do.call(rbind, strsplit(x = dt$contrast, split = "\\-"))[,1]
+dt$group_y <- do.call(rbind, strsplit(x = dt$contrast, split = "\\-"))[,2]
+rm(q)
+
+dt$experiment_x <- ifelse(test = dt$group_x %in% gs_arp, yes = "A", no = "B")
+dt$experiment_y <- ifelse(test = dt$group_y %in% gs_arp, yes = "A", no = "B")
+dt$mix <- "AB"
+dt$mix[dt$experiment_x == "A" & dt$experiment_y == "A"] <- "A"
+dt$mix[dt$experiment_x == "B" & dt$experiment_y == "B"] <- "B"
+dt$l <- -log10(dt$p_adj)
+```
+
+
+# Get cellmig pairwise comparisons
+
+```{r}
+u <- get_pairs(x = o, exponentiate = T)
+ds <- u$ds
+
+ds$dose <- factor(x = ds$dose, levels = c("2.5", "5", "10", "40", "DMSO", "high"))
+ds$compound <- factor(x = ds$compound, levels = c("Fluvastatin", "CK666", 
+                                                  "CK869", "Benproperine", "Haloperidol", 
+                                                  "DMSO", "Pitavastatin", "Pravastatin"))
+
+ds <- ds[ds$group_x!=ds$group_y,]
+
+srt <- c("Fluvastatin|2.5", "Fluvastatin|5", "Fluvastatin|10",
+         "CK666|5", "CK666|10", "CK666|40", 
+         "CK869|5", "CK869|10", 
+         "Benproperine|5", "Benproperine|10", 
+         "Haloperidol|5", "Haloperidol|10", 
+         "DMSO|high",
+         "Pitavastatin|2.5", "Pitavastatin|5", "Pitavastatin|10",
+         "Pravastatin|2.5", "Pravastatin|5", "Pravastatin|10")
+
+ds$group_x <- factor(x = ds$group_x, levels = srt)
+ds$group_y <- factor(x = ds$group_y, levels = srt)
+
+ds$group_comparison <- paste0(ds$group_x, '-', ds$group_y)
+
+rm(u, srt)
+```
+
+
+# Merge results
+
+```{r}
+w <- merge(x = dt, y = ds, by.x = c("contrast"), 
+           by.y = c("group_comparison"), all.x = T)
+```
+
+
+# Plot panels A/B
+
+```{r, fig.width=6.5, fig.height=5}
+w$mix <- (w$group_x.x %in% gs_arp & w$group_y.x %in% gs_statin)|
+  (w$group_y.x %in% gs_arp & w$group_x.x %in% gs_statin)
+l <- w
+l <- l[duplicated(l$contrast)==F,]
+
+g_A <- ggplot(data = w)+
+  geom_point(aes(x = pmax, -log10(p_adj), fill = mix), shape = 21,
+             col = "white", alpha = 0.5, size = 1.35, stroke = 0.1)+
+  geom_hline(yintercept = 2, linetype = "dashed", col = "black")+
+  geom_text_repel(data = l[which(l$pmax > 0.25 & l$pmax < 0.5 & -log10(l$p_adj)>2),],
+                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
+                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
+  geom_text_repel(data = l[which(l$pmax > 0.99 & -log10(l$p_adj)<2),],
+                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
+                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
+  geom_text_repel(data = l[which(l$pmax > 0.5 & l$pmax < 0.75 & -log10(l$p_adj)>2.5),],
+                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
+                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
+  geom_text_repel(data = l[which(l$pmax > 0.5 & l$pmax < 0.95 & -log10(l$p_adj)>4.5),],
+                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
+                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
+  geom_text_repel(data = l[which(l$pmax < 0.9 & -log10(l$p_adj)>9.5),],
+                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
+                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
+  scale_y_log10(name = "-log10(p)")+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top")+
+  annotation_logticks(base = 10, sides = "l")+
+  xlab(label = expression(pi))+
+  scale_fill_manual(name = "Cross-experiment", values = c("black", "#ff3232"))+
+  scale_color_manual(name = "Cross-experiment", values = c("black", "#ff3232"))
+
+
+g_B <- ggplot(data = w)+
+  geom_errorbarh(aes(y = z, x = exp(rho_M), xmin = exp(rho_L95), 
+                    xmax = exp(rho_H95)), width = 0, col = "gray")+
+  geom_point(aes(y = z, x = exp(rho_M), fill = mix), 
+             col = "white", shape = 21, alpha = 0.5, size = 1.35, stroke = 0.1)+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top")+
+  xlab(label = expression(rho))+
+  ylab(label = "z")+
+  scale_fill_manual(name = "Cross-experiment", values = c("black", "#ff3232"))+
+  scale_color_manual(name = "Cross-experiment", values = c("black", "#ff3232"))+
+  annotation_logticks(base = 10, sides = "b")+
+  scale_x_log10()
+```
+
+
+```{r, fig.width=6.5, fig.height=3.5}
+g_top <- (g_A|g_B)+patchwork::plot_annotation(tag_levels = 'A')
+g_top
+```
+
+
+```{r}
+ggsave(filename = "manuscript_dataset_1/Figure_5AB.pdf",
+       plot = g_top,
+       device = "pdf",
+       width = 6.5,
+       height = 3.5)
+```

@@ -1,5 +1,5 @@
 ---
-title: "Figure 5"
+title: "Supplementary 13/14"
 author: "SK"
 date: "`r Sys.Date()`"
 output:
@@ -11,7 +11,6 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
 library(ggplot2)
 library(ggforce)
 library(patchwork)
@@ -80,6 +79,8 @@ dt$l <- -log10(dt$p_adj)
 ```
 
 
+# Get cellmig pairwise comparisons
+
 ```{r}
 u <- get_pairs(x = o, exponentiate = T)
 ds <- u$ds
@@ -109,7 +110,8 @@ rm(u, srt)
 ```
 
 ```{r}
-w <- merge(x = dt, y = ds, by.x = c("contrast"), by.y = c("group_comparison"), all.x = T)
+w <- merge(x = dt, y = ds, by.x = c("contrast"), 
+           by.y = c("group_comparison"), all.x = T)
 ```
 
 ```{r, fig.width=6.5, fig.height=5}
@@ -117,63 +119,7 @@ w$mix <- (w$group_x.x %in% gs_arp & w$group_y.x %in% gs_statin)|
   (w$group_y.x %in% gs_arp & w$group_x.x %in% gs_statin)
 l <- w
 l <- l[duplicated(l$contrast)==F,]
-
-g_A <- ggplot(data = w)+
-  geom_point(aes(x = pmax, -log10(p_adj), fill = mix), shape = 21,
-             col = "white", alpha = 0.5, size = 1.35, stroke = 0.1)+
-  geom_hline(yintercept = 2, linetype = "dashed", col = "black")+
-  geom_text_repel(data = l[which(l$pmax > 0.25 & l$pmax < 0.5 & -log10(l$p_adj)>2),],
-                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
-                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
-  geom_text_repel(data = l[which(l$pmax > 0.99 & -log10(l$p_adj)<2),],
-                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
-                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
-  geom_text_repel(data = l[which(l$pmax > 0.5 & l$pmax < 0.75 & -log10(l$p_adj)>2.5),],
-                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
-                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
-  geom_text_repel(data = l[which(l$pmax > 0.5 & l$pmax < 0.95 & -log10(l$p_adj)>4.5),],
-                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
-                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
-  geom_text_repel(data = l[which(l$pmax < 0.9 & -log10(l$p_adj)>9.5),],
-                  aes(x = pmax, -log10(p_adj), label = contrast, col = mix),
-                  size = 2.25, min.segment.length = 0, max.overlaps = 100)+
-  scale_y_log10(name = "-log10(p)")+
-  theme_bw(base_size = 10)+
-  theme(legend.position = "top")+
-  annotation_logticks(base = 10, sides = "l")+
-  xlab(label = expression(pi))+
-  scale_fill_manual(name = "Cross-experiment", values = c("black", "#ff3232"))+
-  scale_color_manual(name = "Cross-experiment", values = c("black", "#ff3232"))
-
-
-g_B <- ggplot(data = w)+
-  geom_errorbarh(aes(y = z, x = rho_M, xmin = rho_L95, 
-                    xmax = rho_H95), width = 0, col = "gray")+
-  geom_point(aes(y = z, x = rho_M, fill = mix), 
-             col = "white", shape = 21, alpha = 0.5, size = 1.35, stroke = 0.1)+
-  theme_bw(base_size = 10)+
-  theme(legend.position = "top")+
-  xlab(label = expression(rho))+
-  ylab(label = "z")+
-  scale_fill_manual(name = "Cross-experiment", values = c("black", "#ff3232"))+
-  scale_color_manual(name = "Cross-experiment", values = c("black", "#ff3232"))
 ```
-
-
-```{r, fig.width=6.5, fig.height=3.5}
-g_top <- (g_A|g_B)+patchwork::plot_annotation(tag_levels = 'A')
-g_top
-```
-
-
-```{r}
-ggsave(filename = "manuscript_dataset_1/Figure_5.pdf",
-       plot = g_top,
-       device = "pdf",
-       width = 6.5,
-       height = 3.5)
-```
-
 
 
 ```{r}
@@ -183,10 +129,6 @@ high_pval_verylow_pmax <- c("Benproperine|5-Haloperidol|5", "Pravastatin|2.5-Pra
 low_pval_veryhigh_pmax <- c("CK666|40-CK869|10", "Benproperine|10-CK666|40")
 ```
 
-
-
-
-# Supplementary
 
 ```{r}
 get_violin_plot <- function(q, pair, delta_pt, delta_p, label, widths = c(1, 2, 1)) {
@@ -366,30 +308,7 @@ g_fdr <- ggplot(data = kt_df)+
 ggsave(filename = "manuscript_dataset_1/Supplementary_FDR.pdf",
        plot = g_fdr,
        device = "pdf",
-       width = 8,
-       height = 3.5)
-```
-
-
-# Text for manuscript
-
-```{r}
-dt <- o$posteriors$delta_t
-exp(dt[dt$group == "Haloperidol|5", c("mean", "X2.5.", "X97.5.")])
-exp(dt[dt$group == "DMSO|high", c("mean", "X2.5.", "X97.5.")])
-get_pairs(x = o, groups = c("Haloperidol|5", "DMSO|high"), exponentiate = T)$ds
-```
-
-
-```{r}
-exp(dt[dt$group == "Pravastatin|10", c("mean", "X2.5.", "X97.5.")])
-exp(dt[dt$group == "DMSO|high", c("mean", "X2.5.", "X97.5.")])
-get_pairs(x = o, groups = c("Pravastatin|10", "DMSO|high"), exponentiate = T)$ds
-```
-
-```{r}
-exp(dt[dt$group == "Pravastatin|5", c("mean", "X2.5.", "X97.5.")])
-exp(dt[dt$group == "DMSO|high", c("mean", "X2.5.", "X97.5.")])
-get_pairs(x = o, groups = c("Pravastatin|5", "DMSO|high"), exponentiate = T)$ds
+       width = 8.5,
+       height = 4.5)
 ```
 

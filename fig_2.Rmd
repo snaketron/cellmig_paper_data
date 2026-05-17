@@ -11,7 +11,6 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-.libPaths(new = "/mnt/nfs/simo/rpack_4_4/")
 library(ggplot2)
 library(ggforce)
 library(patchwork)
@@ -32,7 +31,8 @@ o <- get(load("results/cellmig_dataset_1.RData"))
 
 ```{r}
 o$posteriors$delta_t$dose <- factor(x = o$posteriors$delta_t$dose, 
-                                    levels = c("2.5", "5", "10", "40", "DMSO", "high"))
+                                    levels = c("2.5", "5", "10", "40", 
+                                               "DMSO", "high"))
 ```
 
 ```{r, fig.width=7, fig.height=2}
@@ -45,7 +45,8 @@ g1 <- ggplot(data = q)+
     facet_wrap(~compound, nrow = 1, scale = "free_x")+
     geom_hline(yintercept = 1, linetype = "dashed")+
     geom_point(aes(x = dose, y = exp(mean)))+
-    geom_errorbar(aes(x = dose, y = exp(mean), ymin = exp(X2.5.), ymax = exp(X97.5.)), width = 0.13)+
+    geom_errorbar(aes(x = dose, y = exp(mean), ymin = exp(X2.5.), 
+                      ymax = exp(X97.5.)), width = 0.13)+
     theme_bw(base_size = 10)+
     theme(legend.position = "none")+
     theme(strip.text.x = element_text(margin = margin(0.035,0,0.035,0, "cm")))+
@@ -61,14 +62,5 @@ ggsave(filename = "manuscript_dataset_1/Figure_2.pdf",
        device = "pdf",
        width = 6.5,
        height = 1.75)
-```
-
-
-```{r}
-q <- o$posteriors$delta_t
-q$mean_exp <- exp(q$mean)
-q$L95_exp <- exp(q$X2.5.)
-q$H95_exp <- exp(q$X97.5.)
-q <- q[,c("compound", "dose", "mean_exp", "L95_exp", "H95_exp")]
 ```
 
