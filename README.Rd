@@ -4,10 +4,10 @@ live cell migration data*.
 
 # What is in this repository?
 
-1. **vignettes**: html documents describing the main functionalitieis of cellmig
-2. **data**: preprocessed Dataset 1 and 2 as RData files
-3. **src**: how to reproduce the cellmig analysis (cellmig_analysis.R) and simulation (simulate_cellmig.R)
-4. **fig**: how to reproduce the individual figures in the manuscript
+- **vignettes**: html documents describing the main functionalitieis of cellmig
+- **data**: preprocessed Dataset 1 and 2 as RData files
+- **src**: how to reproduce the cellmig analysis (cellmig_analysis.R) and simulation (simulate_cellmig.R)
+- **fig**: how to reproduce the individual figures in the manuscript
 
 
 **Any questions? Create an issue!**
