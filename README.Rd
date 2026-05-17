@@ -1,8 +1,14 @@
 This repository contains the source code and data necessary to reproduce the results and 
-figures of the publication "Uncertainty-aware quantitative analysis of high-throughput 
-live cell migration data".
+figures of the publication *Uncertainty-aware quantitative analysis of high-throughput 
+live cell migration data*.
 
-How to reproduce our results?
-1. run src/cellmig_analysis.R using as input .RData files in folder data
-2. generated individual figures by running .Rmd files
-3. post an issue in case you have a question
+# What is in this repository?
+
+1. **vignettes**: html documents describing the main functionalitieis of cellmig
+2. **data**: preprocessed Dataset 1 and 2 as RData files
+3. **src**: how to reproduce the cellmig analysis (cellmig_analysis.R) and simulation (simulate_cellmig.R)
+4. **fig**: how to reproduce the individual figures in the manuscript
+
+
+**Any questions? Create an issue!**
+
