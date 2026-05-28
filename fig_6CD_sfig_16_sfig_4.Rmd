@@ -1,5 +1,5 @@
 ---
-title: "Figure 5CD, sfig 15, sfig 4"
+title: "Figure 6CD, sfig 16, sfig 4"
 author: "SK"
 date: "`r Sys.Date()`"
 output:
@@ -14,6 +14,8 @@ editor_options:
 require(rstan)
 require(ggplot2)
 require(ggrepel)
+require(cellmig)
+require(loo)
 ```
 
 
@@ -39,21 +41,19 @@ get_hdi <- function(vec, hdi_level) {
   HDIlim <- c(HDImin, HDImax)
   return(HDIlim)
 }
-
 ```
 
-
-# Get cellmig results from Dataset 1
 
 ```{r}
 o1 <- get(load(file = "results/cellmig_dataset_1.RData"))
+rm(o)
 d1 <- o1$data$proc_x
 d1$group_id <- d1$group_id+1
 o <- d1[duplicated(d1$group_id)==F, "offset"]
+rm(o1)
 ```
 
 
-# Model: simplistic
 
 ```{r}
 model_code <- "data {
@@ -122,78 +122,152 @@ generated quantities {
 ```
 
 
-# Compile simplistic model
+
 
 ```{r}
+# compile
 M_nh <- rstan::stan_model(model_code = model_code)
 ```
 
-# Fit simplistic model -> save result
 
-```{r}
-# Fit simplistic model
-fit_nh <- rstan::sampling(object = M_nh,
-                          chains = 4, 
-                          cores = 4,
-                          iter = 2000, 
-                          warmup = 1000,
-                          data = list(N = d1$N[1],
-                                      N_group = max(d1$group_id),
-                                      y = d1$v,
-                                      group_id = d1$group_id,
-                                      offset = o,
-                                      prior_alpha_p_M = -0.5,
-                                      prior_alpha_p_SD = 1.0,
-                                      prior_kappa_M = 1.5,
-                                      prior_kappa_SD = 1.0,
-                                      prior_sigma_delta_M = 0.0,
-                                      prior_sigma_delta_SD = 1.0))
-save(fit_nh, file = "manuscript_rebuttal/fit_nh.RData", compress = TRUE)
+```{r,eval=FALSE}
+# Fit simplified model
+fit_simplified_narrow <- rstan::sampling(object = M_nh,
+                                         chains = 4, 
+                                         cores = 4,
+                                         iter = 2000, 
+                                         warmup = 1000,
+                                         data = list(N = d1$N[1],
+                                                     N_group = max(d1$group_id),
+                                                     y = d1$v,
+                                                     group_id = d1$group_id,
+                                                     offset = o,
+                                                     prior_alpha_p_M = -0.5,
+                                                     prior_alpha_p_SD = 1.0,
+                                                     prior_kappa_M = 1.5,
+                                                     prior_kappa_SD = 1.0,
+                                                     prior_sigma_delta_M = 0.0,
+                                                     prior_sigma_delta_SD = 1.0))
+save(fit_simplified_narrow, file = "manuscript_rebuttal/fit_simplified_narrow.RData", compress = TRUE)
+
+
+
+# Fit simplified model with wide-prior
+fit_simplified_wide <- rstan::sampling(object = M_nh,
+                                       chains = 4, 
+                                       cores = 4,
+                                       iter = 2000, 
+                                       warmup = 1000,
+                                       data = list(N = d1$N[1],
+                                                   N_group = max(d1$group_id),
+                                                   y = d1$v,
+                                                   group_id = d1$group_id,
+                                                   offset = o,
+                                                   prior_alpha_p_M = -0.5,
+                                                   prior_alpha_p_SD = 1.0,
+                                                   prior_kappa_M = 1.5,
+                                                   prior_kappa_SD = 1.0,
+                                                   prior_sigma_delta_M = 0.0,
+                                                   prior_sigma_delta_SD = 3.0))
+save(fit_simplified_wide, file = "manuscript_rebuttal/fit_simplified_wide.RData", compress = TRUE)
 ```
 
 
-# Load both models: cellmig and simplistic
+
+```{r, eval=F}
+d <- get(load("/mnt/nfs/simo/cellmig_application/data/dataset_1.RData"))
+
+fit_cellmig_narrow <- cellmig(x = d[,c("well", "plate", "compound", "dose", "v", "offset")],
+                              control = list(mcmc_warmup = 1000,
+                                             mcmc_steps = 2000,
+                                             mcmc_chains = 4,
+                                             mcmc_cores = 4,
+                                             mcmc_algorithm = "NUTS",
+                                             adapt_delta = 0.8,
+                                             max_treedepth = 10,
+                                             prior_alpha_p_M = -0.5,
+                                             prior_alpha_p_SD = 1.0,
+                                             prior_sigma_bio_M = 0.0,
+                                             prior_sigma_bio_SD = 1.0,
+                                             prior_sigma_tech_M = 0.0,
+                                             prior_sigma_tech_SD = 1.0,
+                                             prior_kappa_mu_M = 1.5,
+                                             prior_kappa_mu_SD = 1.0,
+                                             prior_kappa_sigma_M = 0.0,
+                                             prior_kappa_sigma_SD = 1.0,
+                                             prior_sigma_delta_M = 0.0,
+                                             prior_sigma_delta_SD = 1.0))
+save(fit_cellmig_narrow, file = "manuscript_rebuttal/fit_cellmig_narrow.RData", compress = TRUE)
+
+fit_cellmig_wide <- cellmig(x = d[,c("well", "plate", "compound", "dose", "v", "offset")],
+                            control = list(mcmc_warmup = 1000,
+                                           mcmc_steps = 2000,
+                                           mcmc_chains = 4,
+                                           mcmc_cores = 4,
+                                           mcmc_algorithm = "NUTS",
+                                           adapt_delta = 0.8,
+                                           max_treedepth = 10,
+                                           prior_alpha_p_M = -0.5,
+                                           prior_alpha_p_SD = 1.0,
+                                           prior_sigma_bio_M = 0.0,
+                                           prior_sigma_bio_SD = 3.0,
+                                           prior_sigma_tech_M = 0.0,
+                                           prior_sigma_tech_SD = 3.0,
+                                           prior_kappa_mu_M = 1.5,
+                                           prior_kappa_mu_SD = 1.0,
+                                           prior_kappa_sigma_M = 0.0,
+                                           prior_kappa_sigma_SD = 3.0,
+                                           prior_sigma_delta_M = 0.0,
+                                           prior_sigma_delta_SD = 3.0))
+save(fit_cellmig_wide, file = "manuscript_rebuttal/fit_cellmig_wide.RData", compress = TRUE)
+```
+
 
 ```{r}
-o1 <- get(load("results/cellmig_dataset_1.RData"))
-fit_nh <- get(load("manuscript_rebuttal/fit_nh.RData"))
+fit_cellmig_wide <- get(load("manuscript_rebuttal/fit_cellmig_wide.RData"))
+fit_cellmig_narrow <- get(load("manuscript_rebuttal/fit_cellmig_narrow.RData"))
+
+fit_simplified_wide <- get(load("manuscript_rebuttal/fit_simplified_wide.RData"))
+fit_simplified_narrow <- get(load("manuscript_rebuttal/fit_simplified_narrow.RData"))
 ```
 
 
 # LOOIC based model comparison
 
 ```{r}
-loo::loo_compare(loo::loo(o1$fit), loo::loo(fit_nh))
+loo::loo_compare(loo::loo(fit_cellmig_narrow$fit), 
+                 loo::loo(fit_simplified_narrow))
+# elpd_diff  se 
+# 861.1      45.9
 ```
-
-# Evaluate each LOO
 
 ```{r}
-rstan::loo(o1$fit)
-rstan::loo(fit_nh)
+rstan::loo(fit_cellmig_narrow$fit)
+rstan::loo(fit_simplified_narrow)
 ```
+
 
 
 # Comparison of delta_t
 
 ```{r}
 # extract delta_t
-dt_nh <- data.frame(summary(fit_nh, par = "delta_t")$summary)
+dt_nh <- data.frame(summary(fit_simplified_narrow, par = "delta_t")$summary)
 # compute pmax
-dt_nh$pmax <- apply(X = extract(fit_nh, par = "delta_t")$delta_t, 
+dt_nh$pmax <- apply(X = extract(fit_simplified_narrow, par = "delta_t")$delta_t, 
                     MARGIN = 2, FUN = get_pmax)
 dt_nh <- dt_nh[,c("mean", "X2.5.", "X97.5.", "pmax")]
 colnames(dt_nh) <- paste0(colnames(dt_nh), "_nh")
 
 
 
-dt_h <- o1$posteriors$delta_t
+dt_h <- fit_cellmig_narrow$posteriors$delta_t
 dt_h <- dt_h[,c("mean", "X2.5.", "X97.5.", "group", "compound", "dose", "pmax")]
 colnames(dt_h) <- paste0(colnames(dt_h), "_h")
 
 
 # mixed vs non-mixed
-q <- o1$data$proc_x
+q <- fit_cellmig_narrow$data$proc_x
 q$experiment <- "B"
 q$experiment[q$plate %in% c("p_1", "p_2", "p_3")] <- "A"
 q <- q[duplicated(q$group)==F,]
@@ -229,13 +303,13 @@ fig_delta_t <- ggplot(data = dt)+
 # Comparison of rho
 
 ```{r}
-ds_h <- cellmig::get_pairs(x = o1, exponentiate = FALSE)
+ds_h <- cellmig::get_pairs(x = fit_cellmig_narrow, exponentiate = FALSE)
 ds_h <- ds_h$ds[, c("group_x", "group_y", "rho_M", "rho_L95", "rho_H95", "pmax")]
 colnames(ds_h)[3:ncol(ds_h)] <- paste0(colnames(ds_h)[3:ncol(ds_h)], "_h")
 
 
 
-p <- extract(fit_nh, par = "delta_t")$delta_t
+p <- extract(fit_simplified_narrow, par = "delta_t")$delta_t
 idx <- expand.grid(i = seq_len(ncol(p)), j = seq_len(ncol(p)))
 ds_nh <- do.call(rbind, mapply(FUN = function(i, j) {
   d <- p[,i] - p[,j]
@@ -260,7 +334,7 @@ colnames(ds_nh)[1:ncol(ds_nh)] <- paste0(colnames(ds_nh)[1:ncol(ds_nh)], "_nh")
 ds <- cbind(ds_h, ds_nh)
 
 # mixed vs non-mixed
-q <- o1$data$proc_x
+q <- fit_cellmig_narrow$data$proc_x
 q$experiment <- "B"
 q$experiment[q$plate %in% c("p_1", "p_2", "p_3")] <- "A"
 q <- q[q$dose != "DMSO",]
@@ -313,6 +387,8 @@ fig_rho <- ggplot(data = ds)+
                     values = c("yes" = "red", "no" = "black"))+
   theme_bw(base_size = 10)+
   theme(legend.position = c(0.2, 0.8))
+
+fig_rho
 ```
 
 
@@ -328,15 +404,14 @@ fig5cd <- (fig_delta_t|fig_rho)
 
 
 ```{r}
-ggsave(filename = "manuscript_rebuttal/Fig_5CD.pdf",
+ggsave(filename = "manuscript_rebuttal/Fig_6CD.pdf",
        plot = fig5cd,
        device = "pdf",
        width = 6.25,
        height = 3)
 ```
 
-
-# SFig 14
+# Supplementary Figure S16
 
 ```{r}
 ds_full$label <- ifelse(ds_full$pmax_h>=0.99 & ds_full$pmax_nh>=0.99, yes = "both", no = "neither")
@@ -361,74 +436,51 @@ sfig_simplified_cellmig <- ggplot(data = ds_full)+
                       values = c("both" = "orange", "simplified"="steelblue", "neither" = "black"))+
   xlab(label = "to group")+
   ylab(label = "from group")
+```
 
+```{r}
 ggsave(filename = "manuscript_rebuttal/Supplementary_simplified_cellmig_hits.pdf", 
        plot = sfig_simplified_cellmig,
        device = "pdf",
        width = 6, height = 4.5)
 ```
 
-
-
-# SFig 4
+# Prior sensitivity analysis (cellmig)
 
 ```{r}
-d <- get(load("/mnt/nfs/simo/cellmig_application/data/dataset_1.RData"))
+par_nh <- data.frame(summary(fit_simplified_narrow, par = c("delta_t", "alpha_p", "kappa", "mu", "sigma_delta"))$summary)
+par_nh$par <- do.call(rbind, strsplit(split = "\\[", x = rownames(par_nh)))[,1]
+par_nh$par[par_nh$par == "alpha_p"] <- "alpha"
 
-o <- cellmig(x = d[,c("well", "plate", "compound", "dose", "v", "offset")],
-             control = list(mcmc_warmup = 1000,
-                            mcmc_steps = 2000,
-                            mcmc_chains = 4,
-                            mcmc_cores = 4,
-                            mcmc_algorithm = "NUTS",
-                            adapt_delta = 0.8,
-                            max_treedepth = 10,
-                            prior_alpha_p_M = -0.5,
-                            prior_alpha_p_SD = 1.0,
-                            prior_sigma_bio_M = 0.0,
-                            prior_sigma_bio_SD = 1.0,
-                            prior_sigma_tech_M = 0.0,
-                            prior_sigma_tech_SD = 1.0,
-                            prior_kappa_mu_M = 1.5,
-                            prior_kappa_mu_SD = 1.0,
-                            prior_kappa_sigma_M = 0.0,
-                            prior_kappa_sigma_SD = 1.0,
-                            prior_sigma_delta_M = 0.0,
-                            prior_sigma_delta_SD = 1.0))
-save(o, file = "manuscript_rebuttal/fit_o.RData", compress = TRUE)
+par_nh_wide <- data.frame(summary(fit_simplified_wide, par = c("delta_t", "alpha_p", "kappa", "mu", "sigma_delta"))$summary)
+par_nh_wide$par <- do.call(rbind, strsplit(split = "\\[", x = rownames(par_nh_wide)))[,1]
+par_nh_wide$par[par_nh_wide$par == "alpha_p"] <- "alpha"
+colnames(par_nh_wide) <- paste0(colnames(par_nh_wide), "_wide")
 
-o_wide <- cellmig(x = d[,c("well", "plate", "compound", "dose", "v", "offset")],
-             control = list(mcmc_warmup = 1000,
-                            mcmc_steps = 2000,
-                            mcmc_chains = 4,
-                            mcmc_cores = 4,
-                            mcmc_algorithm = "NUTS",
-                            adapt_delta = 0.8,
-                            max_treedepth = 10,
-                            prior_alpha_p_M = -0.5,
-                            prior_alpha_p_SD = 3.0,
-                            prior_sigma_bio_M = 0.0,
-                            prior_sigma_bio_SD = 3.0,
-                            prior_sigma_tech_M = 0.0,
-                            prior_sigma_tech_SD = 3.0,
-                            prior_kappa_mu_M = 1.5,
-                            prior_kappa_mu_SD = 3.0,
-                            prior_kappa_sigma_M = 0.0,
-                            prior_kappa_sigma_SD = 3.0,
-                            prior_sigma_delta_M = 0.0,
-                            prior_sigma_delta_SD = 3.0))
-save(o_wide, file = "manuscript_rebuttal/fit_o_wide.RData", compress = TRUE)
+pars <- cbind(par_nh, par_nh_wide)
 ```
 
+```{r, fig.width=6, fig.height=3.5}
+fig_prior_sensitivity_simplified <- ggplot(data = pars)+
+  facet_wrap(~par, ncol = 3, scales = "free")+
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed")+
+  geom_errorbar(aes(x = mean, y = mean_wide, xmin = X2.5., xmax = X97.5.), col = "darkgray")+
+  geom_errorbar(aes(x = mean, y = mean_wide, ymin = X2.5., ymax = X97.5.), col = "darkgray")+
+  geom_point(aes(x = mean, y = mean_wide), size = 1, alpha = 0.5)+
+  theme_bw(base_size = 10)+
+  scale_x_continuous(name = "simplified model (default prior)", breaks = scales::pretty_breaks(n = 3))+
+  scale_y_continuous(name = "simplified model (wide priors)", breaks = scales::pretty_breaks(n = 3))
 
+fig_prior_sensitivity_simplified
+```
 
 ```{r}
-par_o <- data.frame(summary(o$fit, par = c("delta_t", "delta_tp", "alpha_p", 
+par_o <- data.frame(summary(fit_cellmig_narrow$fit, par = c("delta_t", "delta_tp", "alpha_p", 
                                            "mu", "kappa", "kappa_mu", "kappa_sigma",
                                            "sigma_delta", "sigma_bio", "sigma_tech"))$summary)
 par_o$par <- do.call(rbind, strsplit(split = "\\[", x = rownames(par_o)))[,1]
 
-par_o_wide <- data.frame(summary(o_wide$fit, par = c("delta_t", "delta_tp", "alpha_p", 
+par_o_wide <- data.frame(summary(fit_cellmig_wide$fit, par = c("delta_t", "delta_tp", "alpha_p", 
                                                      "mu", "kappa", "kappa_mu", "kappa_sigma",
                                                      "sigma_delta", "sigma_bio", "sigma_tech"))$summary)
 par_o_wide$par <- do.call(rbind, strsplit(split = "\\[", x = rownames(par_o_wide)))[,1]
@@ -437,9 +489,8 @@ colnames(par_o_wide) <- paste0(colnames(par_o_wide), "_wide")
 pars <- cbind(par_o, par_o_wide)
 ```
 
-
 ```{r, fig.width=6.5, fig.height=5}
-fig_prior_sensitivity_o <- ggplot(data = pars)+
+fig_prior_sensitivity_cellmig <- ggplot(data = pars)+
   facet_wrap(~par, ncol = 3, scales = "free")+
   geom_abline(slope = 1, intercept = 0, linetype = "dashed")+
   geom_errorbar(aes(x = mean, y = mean_wide, xmin = X2.5., xmax = X97.5.), col = "darkgray")+
@@ -450,12 +501,13 @@ fig_prior_sensitivity_o <- ggplot(data = pars)+
   scale_y_continuous(name = "cellmig model (wide priors)", breaks = scales::pretty_breaks(n = 3))
 ```
 
-
 ```{r, fig.width=5, fig.height=8}
-fig_prior_sensitivity <- (fig_prior_sensitivity_o/fig_prior_sensitivity_h)+
+fig_prior_sensitivity <- (fig_prior_sensitivity_cellmig/fig_prior_sensitivity_simplified)+
   patchwork::plot_layout(heights = c(2,1))
-```
 
+
+fig_prior_sensitivity
+```
 
 ```{r}
 ggsave(filename = "manuscript_rebuttal/Supplementary_prior_sensitivity.pdf",
@@ -464,4 +516,3 @@ ggsave(filename = "manuscript_rebuttal/Supplementary_prior_sensitivity.pdf",
        width = 5,
        height = 8)
 ```
-

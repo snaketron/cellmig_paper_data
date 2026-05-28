@@ -12,151 +12,51 @@ editor_options:
 
 ```{r setup, include=FALSE}
 library(ggplot2)
-library(ggforce)
-library(patchwork)
-library(reshape2)
-library(dplyr)
-library(DT)
 library(cellmig)
 dir.create("manuscript_dataset_1")
-
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
 
 ```{r}
 o <- get(load("results/cellmig_dataset_1.RData"))
 ```
 
-```{r}
-o$posteriors$delta_tp$dose <- factor(x = o$posteriors$delta_tp$dose, 
-                                     levels = c("2.5", "5", "10", 
-                                                "40", "DMSO", "high"))
-```
-
-```{r, fig.width=6.5, fig.height=2}
-o$posteriors$delta_tp$plate_group <- "p={4,5,6,7,8}"
-o$posteriors$delta_tp$plate_group[o$posteriors$delta_tp$plate == "p_1"] <- "p={1,2,3}"
-o$posteriors$delta_tp$plate_group[o$posteriors$delta_tp$plate == "p_2"] <- "p={1,2,3}"
-o$posteriors$delta_tp$plate_group[o$posteriors$delta_tp$plate == "p_3"] <- "p={1,2,3}"
-
-q <- o$posteriors$delta_tp
-q$compound <- factor(x = q$compound, levels = c("Fluvastatin", "CK666", 
-                                                "CK869", "Benproperine", 
-                                                "Haloperidol", "DMSO", 
-                                                "Pitavastatin", "Pravastatin"))
-
-g2 <- ggplot(data = q)+
-  facet_wrap(~compound, nrow = 1, scale = "free_x")+
-  geom_hline(yintercept = 1, linetype = "dashed")+
-  geom_errorbar(aes(x = dose, y = exp(mean), ymin = exp(X2.5.), ymax = exp(X97.5.),
-                    col = plate_group, group = well_id), width = 0.000001, 
-                alpha = 0.7, position = position_dodge(width = 0.8))+
-  geom_point(aes(x = dose, y = exp(mean), fill = plate_group, group = well_id),
-             position = position_dodge(width = 0.8), shape = 21, 
-             alpha = 0.8, size = 1, stroke = 0.2, col = "white")+
-  theme_bw(base_size = 10)+
-  theme(strip.text.x = element_text(margin = margin(0.035,0,0.035,0, "cm")))+
-  theme(legend.position = "top")+
-    ylab(label = expression("Plate fold-change ("*gamma^"\'"* ")"))+
-  xlab(label = "Dose")+
-  scale_color_manual(name = "Plate group", values = c("steelblue", "orange"))+
-  scale_fill_manual(name = "Plate group", values = c("steelblue", "orange"))
-
-g2
-```
-
-
+# Figure 3
 
 ```{r}
-o$posteriors$well_mu$dose <- factor(x = o$posteriors$well_mu$dose, 
+o$posteriors$delta_t$dose <- factor(x = o$posteriors$delta_t$dose, 
                                     levels = c("2.5", "5", "10", "40", 
                                                "DMSO", "high"))
-o$posteriors$well_mu$plate_group <- "p={4,5,6,7,8}"
-o$posteriors$well_mu$plate_group[o$posteriors$well_mu$plate == "p_1"] <- "p={1,2,3}"
-o$posteriors$well_mu$plate_group[o$posteriors$well_mu$plate == "p_2"] <- "p={1,2,3}"
-o$posteriors$well_mu$plate_group[o$posteriors$well_mu$plate == "p_3"] <- "p={1,2,3}"
+```
 
-q <- o$posteriors$well_mu
+```{r, fig.width=7, fig.height=2}
+q <- o$posteriors$delta_t
 q$compound <- factor(x = q$compound, levels = c("Fluvastatin", "CK666", 
                                                 "CK869", "Benproperine", 
                                                 "Haloperidol", "DMSO", 
                                                 "Pitavastatin", "Pravastatin"))
-```
+g1 <- ggplot(data = q)+
+    facet_wrap(~compound, nrow = 1, scale = "free_x")+
+    geom_hline(yintercept = 1, linetype = "dashed")+
+    geom_point(aes(x = dose, y = exp(mean)))+
+    geom_errorbar(aes(x = dose, y = exp(mean), ymin = exp(X2.5.), 
+                      ymax = exp(X97.5.)), width = 0.13)+
+    theme_bw(base_size = 10)+
+    theme(legend.position = "none")+
+    theme(strip.text.x = element_text(margin = margin(0.035,0,0.035,0, "cm")))+
+    ylab(label = expression("Overall fold-change ("*delta^"\'"*")"))+
+    xlab(label = "Dose")
 
-
-```{r, fig.width=7, fig.height=2.5}
-g3 <- ggplot(data = q)+
-  facet_wrap(~compound, nrow = 1, scale = "free_x")+
-  geom_errorbar(aes(x = dose, y = mean, ymin = X2.5., ymax = X97.5.,
-                    col = plate_group, group = well_id), width = 0.000001, 
-                alpha = 0.7, position = position_dodge(width = 0.8))+
-  geom_point(aes(x = dose, y = mean, fill = plate_group, group = well_id),
-             position = position_dodge(width = 0.8), shape = 21, 
-             alpha = 0.8, size = 1, stroke = 0.2, col = "white")+
-  theme_bw(base_size = 10)+
-  theme(strip.text.x = element_text(margin = margin(0.035,0,0.035,0, "cm")))+
-  theme(legend.position = "top")+
-  ylab(label = expression("Well velocity ("*mu["[w]"]*")"))+
-  xlab(label = "Dose")+
-  scale_color_manual(name = "Plate group", values = c("steelblue", "orange"))+
-  scale_fill_manual(name = "Plate group", values = c("steelblue", "orange"))
-
-g3
-```
-
-
-
-
-```{r, fig.width=7, fig.height=5}
-d <- get(load("data/dataset_1.RData"))
-u <- aggregate(v~plate+dose+compound+experiment, data = d, FUN = mean)
-u$dose <- factor(x = u$dose, levels = c("2.5", "5", "10", "40", "DMSO", "high"))
-
-u$plate_group <- "p={4,5,6,7,8}"
-u$plate_group[u$plate == "p_1"] <- "p={1,2,3}"
-u$plate_group[u$plate == "p_2"] <- "p={1,2,3}"
-u$plate_group[u$plate == "p_3"] <- "p={1,2,3}"
-
-u$compound <- factor(x = u$compound, 
-                     levels = c("Fluvastatin", "CK666", 
-                                "CK869", "Benproperine", 
-                                "Haloperidol", "DMSO", 
-                                "Pitavastatin", "Pravastatin"))
-```
-
-
-```{r, fig.width=7, fig.height=2.2}
-g4 <- ggplot(data = u)+
-  facet_wrap(~compound, nrow = 1, scale = "free_x")+
-  geom_point(aes(x = dose, y = v, fill = plate_group, group = plate_group),
-             position = position_jitterdodge(dodge.width = 0.8,
-                                             jitter.width = 0.3,
-                                             jitter.height = 0), shape = 21, 
-             alpha = 0.8, size = 1, stroke = 0.2, col = "white")+
-  theme_bw(base_size = 10)+
-  theme(legend.position = "top")+
-  theme(strip.text.x = element_text(margin = margin(0.035,0,0.035,0, "cm")))+
-  ylab(label = "Mean plate velocity")+
-  scale_fill_manual(name = "Plate group", 
-                    values = c("steelblue", "orange"))+
-  xlab(label = "Dose")
-
-g4
-```
-
-```{r}
-g <- (g2/g3/g4)+patchwork::plot_annotation(tag_levels = 'A')
-```
-
-```{r, fig.width=7, fig.height=9}
-g
+g1
 ```
 
 ```{r}
 ggsave(filename = "manuscript_dataset_1/Figure_3.pdf",
-       plot = g,
+       plot = g1,
        device = "pdf",
-       width = 6.75,
-       height = 7)
+       width = 6.5,
+       height = 1.75)
 ```

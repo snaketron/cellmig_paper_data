@@ -1,5 +1,5 @@
 ---
-title: "Supplementary 13/14"
+title: "SFig 14-15"
 author: "SK"
 date: "`r Sys.Date()`"
 output:
@@ -21,7 +21,10 @@ library(cellmig)
 library(dunn.test)
 library(ggrepel)
 dir.create("manuscript_dataset_1")
+```
 
+
+```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
@@ -146,7 +149,6 @@ get_violin_plot <- function(q, pair, delta_pt, delta_p, label, widths = c(1, 2, 
   q$group_x[q$group == pair[2]] <- "y"
   
   g1 <- ggplot(data = q)+
-    # facet_grid(~group_x, scales = "free_x")+
     geom_sina(aes(x = group_x, y = v), size = 0.2, col = "black")+
     geom_point(data = aggregate(v~group_x, FUN = median, data = q), 
               aes(x = group_x, y = v), 

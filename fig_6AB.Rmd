@@ -1,5 +1,5 @@
 ---
-title: "Figure 5AB"
+title: "Figure 6AB"
 author: "SK"
 date: "`r Sys.Date()`"
 output:
@@ -25,11 +25,9 @@ dir.create("manuscript_dataset_1")
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 ```
 
-
 ```{r}
 o <- get(load("results/cellmig_dataset_1.RData"))
 ```
-
 
 # Kruskal-Wallis test + Dunn correction
 
@@ -43,14 +41,12 @@ o$posteriors$delta_t$plate_group_exp <- "B"
 o$posteriors$delta_t$plate_group_exp[o$posteriors$delta_t$plate %in% c("p_1", "p_2", "p_3")] <- "A"
 ```
 
-
 ```{r}
 d <- o$data$proc_x
 d$dose <- factor(x = d$dose, levels = c("2.5", "5", "10", "40", "DMSO", "high"))
 d$experiment <- "B"
 d$experiment[d$plate %in% c("p_1", "p_2", "p_3")] <- "A"
 ```
-
 
 # Pool everything
 
@@ -77,7 +73,6 @@ dt$mix[dt$experiment_x == "A" & dt$experiment_y == "A"] <- "A"
 dt$mix[dt$experiment_x == "B" & dt$experiment_y == "B"] <- "B"
 dt$l <- -log10(dt$p_adj)
 ```
-
 
 # Get cellmig pairwise comparisons
 
@@ -108,7 +103,6 @@ ds$group_comparison <- paste0(ds$group_x, '-', ds$group_y)
 
 rm(u, srt)
 ```
-
 
 # Merge results
 
@@ -177,7 +171,7 @@ g_top
 
 
 ```{r}
-ggsave(filename = "manuscript_dataset_1/Figure_5AB.pdf",
+ggsave(filename = "manuscript_dataset_1/Figure_6AB.pdf",
        plot = g_top,
        device = "pdf",
        width = 6.5,

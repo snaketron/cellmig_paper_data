@@ -1,0 +1,75 @@
+---
+title: "Figure 8"
+author: "SK"
+date: "`r Sys.Date()`"
+output:
+  rmdformats::robobook:
+    highlight: kate
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+library(cellmig)
+dir.create("manuscript_dataset_2")
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+# Load cellmig results from Dataset 2, see src/cellmig_analysis.R
+o <- get(load("results/cellmig_dataset_2.RData"))
+```
+
+```{r, fig.width=6.5, fig.height=7}
+d_t <- o$posteriors$delta_t
+d_t$dose <- factor(x = d_t$dose, levels = ds)
+d_t$compound <- factor(x = d_t$compound, levels = cs)
+d_t$hit <- T
+d_t$hit[which(!(d_t$X2.5.<=0&d_t$X97.5.>=0))] <- F
+
+d_tp <- o$posteriors$delta_tp
+d_tp$dose <- factor(x = d_tp$dose, levels = ds)
+d_tp$compound <- factor(x = d_tp$compound, levels = cs)
+```
+
+
+```{r, fig.width=6.5, fig.height=7}
+g1 <- ggplot()+
+  facet_wrap(~compound, nrow = 3, scale = "free_x")+
+  geom_hline(yintercept = 1, linetype = "dashed")+
+  geom_errorbar(data = d_tp, aes(x = dose, y = exp(mean), ymin = exp(X2.5.), 
+                                 ymax = exp(X97.5.), group = plate), width = 0.15,
+                position = position_dodge(width = 0.75), alpha = 0.85, col = "darkgray")+
+  geom_point(data = d_tp, aes(x = dose, y = exp(mean), group = plate),
+             position = position_dodge(width = 0.75), size = 0.5, alpha = 0.85,
+             shape = 21, fill = "darkgray", col = "darkgray")+
+  geom_errorbar(data = d_t, aes(x = dose, y = exp(mean), ymin = exp(X2.5.), 
+                                ymax = exp(X97.5.), col = hit), width = 0.0,
+                position = position_nudge(x = 0.08))+
+  geom_point(data = d_t, aes(x = dose, y = exp(mean), col = hit), 
+             position = position_nudge(x = 0.08), size = 1)+
+  theme_bw(base_size = 10)+
+  theme(legend.position = "top")+
+  theme(strip.text.x = element_text(margin = margin(0.035,0,0.035,0, "cm")))+
+  ylab(label = expression("Overall ("*delta^"\'"*") and plate-specific ("*gamma^"\'"*") fold-change"))+
+  xlab(label = "Dose")+
+  scale_color_manual(name = expression("95% HDIs of "* delta^"\'" *"cross 0"), 
+                     values = c("TRUE"="black", "FALSE"="red"))+
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 6))
+
+g1
+```
+
+
+```{r}
+ggsave(filename = "manuscript_dataset_2/Figure_8.pdf",
+       plot = g1,
+       device = "pdf",
+       width = 6.5,
+       height = 7)
+```
